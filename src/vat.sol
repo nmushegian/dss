@@ -30,6 +30,8 @@ contract Vat {
         uint256 rate;  // ray
         uint256 Ink;   // wad
         uint256 Art;   // wad
+        uint256 spot;  // Price with Safety Margin  [ray]
+        uint256 line;  // Debt Ceiling              [wad]
     }
     struct Urn {
         uint256 ink;   // wad
@@ -44,8 +46,17 @@ contract Vat {
 
     uint256 public debt;  // rad
     uint256 public vice;  // rad
+    uint256 public live;  // Access Flag
+    uint256 public Line;  // Debt Ceiling  [wad]
 
     // --- Logs ---
+    event Frob(
+      bytes32 indexed ilk,
+      bytes32 indexed urn,
+      int256  dink,
+      int256  dart
+    );
+
     event Note(
         bytes4   indexed  sig,
         bytes32  indexed  foo,
@@ -66,9 +77,13 @@ contract Vat {
     }
 
     // --- Init ---
-    constructor() public { wards[msg.sender] = 1; }
+    constructor() public {
+        wards[msg.sender] = 1;
+        live = 1;
+    }
 
     // --- Math ---
+    uint256 constant ONE = 10 ** 27;
     function add(uint x, int y) internal pure returns (uint z) {
       assembly {
         z := add(x, y)
@@ -90,13 +105,23 @@ contract Vat {
         if iszero(eq(y, 0)) { if iszero(eq(sdiv(z, y), x)) { revert(0, 0) } }
       }
     }
+    function mul(uint x, uint y) internal pure returns (uint z) {
+        require(y == 0 || (z = x * y) / y == x);
+    }
 
     // --- Administration ---
     function init(bytes32 ilk) public note auth {
         require(ilks[ilk].rate == 0);
         require(ilks[ilk].take == 0);
-        ilks[ilk].rate = 10 ** 27;
-        ilks[ilk].take = 10 ** 27;
+        ilks[ilk].rate = ONE;
+        ilks[ilk].take = ONE;
+    }
+    function file(bytes32 what, uint data) public note auth {
+        if (what == "Line") Line = data;
+    }
+    function file(bytes32 ilk, bytes32 what, uint data) public note auth {
+        if (what == "spot") ilks[ilk].spot = data;
+        if (what == "line") ilks[ilk].line = data;
     }
 
     // --- Fungibility ---
@@ -113,7 +138,7 @@ contract Vat {
     }
 
     // --- CDP ---
-    function tune(bytes32 i, bytes32 u, bytes32 v, bytes32 w, int dink, int dart) public note auth {
+    function frob(bytes32 i, bytes32 u, bytes32 v, bytes32 w, int dink, int dart) public note {
         Urn storage urn = urns[i][u];
         Ilk storage ilk = ilks[i];
 
@@ -125,6 +150,22 @@ contract Vat {
         gem[i][v] = sub(gem[i][v], mul(ilk.take, dink));
         dai[w]    = add(dai[w],    mul(ilk.rate, dart));
         debt      = add(debt,      mul(ilk.rate, dart));
+
+        bool cool = dart <= 0;
+        bool firm = dink >= 0;
+        bool nice = cool && firm;
+        bool calm = mul(ilk.Art, ilk.rate) <= mul(ilk.line, ONE) && debt <= mul(Line, ONE);
+        bool safe = mul(urn.ink, ilk.spot) >= mul(urn.art, ilk.rate);
+
+        bool okay = (calm || cool) && (nice || safe);
+
+        require(msg.sender == address(bytes20(u)) ||  nice);
+        require(msg.sender == address(bytes20(v)) || !firm);
+        require(msg.sender == address(bytes20(w)) || !cool);
+
+        require(okay);
+        require(live == 1);
+        require(ilk.rate != 0);
     }
     function grab(bytes32 i, bytes32 u, bytes32 v, bytes32 w, int dink, int dart) public note auth {
         Urn storage urn = urns[i][u];

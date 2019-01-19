@@ -37,6 +37,8 @@ contract VatLike {
         uint256 rate;  // ray
         uint256 Ink;   // wad
         uint256 Art;   // wad
+        uint256 spot;  // ray
+        uint256 line;  // wad
     }
     struct Urn {
         uint256 ink;   // wad
@@ -45,10 +47,6 @@ contract VatLike {
     function ilks(bytes32) public view returns (Ilk memory);
     function urns(bytes32,bytes32) public view returns (Urn memory);
     function grab(bytes32,bytes32,bytes32,bytes32,int,int) public;
-}
-
-contract PitLike {
-    function ilks(bytes32) public view returns (uint,uint);
 }
 
 contract VowLike {
@@ -81,7 +79,6 @@ contract Cat is DSNote {
 
     uint256 public live;
     VatLike public vat;
-    PitLike public pit;
     VowLike public vow;
 
     // --- Events ---
@@ -121,7 +118,6 @@ contract Cat is DSNote {
 
     // --- Administration ---
     function file(bytes32 what, address data) public note auth {
-        if (what == "pit") pit = PitLike(data);
         if (what == "vow") vow = VowLike(data);
     }
     function file(bytes32 ilk, bytes32 what, uint data) public note auth {
@@ -137,10 +133,9 @@ contract Cat is DSNote {
         require(live == 1);
         VatLike.Ilk memory i = vat.ilks(ilk);
         VatLike.Urn memory u = vat.urns(ilk, urn);
-        (uint spot, uint line) = pit.ilks(ilk); line;
         uint tab = rmul(u.art, i.rate);
 
-        require(rmul(u.ink, spot) < tab);  // !safe
+        require(rmul(u.ink, i.spot) < tab);  // !safe
 
         vat.grab(ilk, urn, bytes32(bytes20(address(this))), bytes32(bytes20(address(vow))), -int(u.ink), -int(u.art));
         vow.fess(tab);
