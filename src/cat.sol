@@ -125,6 +125,9 @@ contract Cat is DSNote {
     function file(bytes32 ilk, bytes32 what, address flip) public note auth {
         if (what == "flip") ilks[ilk].flip = flip;
     }
+    function cage() public note auth {
+        live = 0;
+    }
 
     // --- CDP Liquidation ---
     function bite(bytes32 ilk, bytes32 urn) public returns (uint) {
@@ -145,7 +148,6 @@ contract Cat is DSNote {
         return nflip++;
     }
     function flip(uint n, uint wad) public note returns (uint id) {
-        require(live == 1);
         Flip storage f = flips[n];
         Ilk  storage i = ilks[f.ilk];
 
