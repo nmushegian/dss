@@ -118,12 +118,12 @@ contract Vat {
     }
 
     // --- Fungibility ---
-    function slip(bytes32 ilk, bytes32 guy, int256 rad) public note auth {
-        gem[ilk][guy] = add(gem[ilk][guy], rad);
+    function slip(bytes32 ilk, bytes32 guy, int256 wad) public note auth {
+        gem[ilk][guy] = add(gem[ilk][guy], wad);
     }
-    function flux(bytes32 ilk, bytes32 src, bytes32 dst, int256 rad) public note auth {
-        gem[ilk][src] = sub(gem[ilk][src], rad);
-        gem[ilk][dst] = add(gem[ilk][dst], rad);
+    function flux(bytes32 ilk, bytes32 src, bytes32 dst, int256 wad) public note auth {
+        gem[ilk][src] = sub(gem[ilk][src], wad);
+        gem[ilk][dst] = add(gem[ilk][dst], wad);
     }
     function move(bytes32 src, bytes32 dst, int256 rad) public note auth {
         dai[src] = sub(dai[src], rad);
