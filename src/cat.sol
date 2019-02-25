@@ -36,7 +36,8 @@ contract VatLike {
         uint256 rate;  // ray
         uint256 Art;   // wad
         uint256 spot;  // ray
-        uint256 line;  // wad
+        uint256 line;  // rad
+        uint256 dust;  // rad
     }
     struct Urn {
         uint256 ink;   // wad
